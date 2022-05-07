@@ -34,6 +34,7 @@ type app struct {
 	listeners       []net.Listener
 	sds             []httpdown.Server
 	preStartProcess func() error
+	forceIpv4       bool
 	errors          chan error
 }
 
@@ -55,7 +56,12 @@ func newApp(servers []*http.Server) *app {
 func (a *app) listen() error {
 	for _, s := range a.servers {
 		// TODO: default addresses
-		l, err := a.net.Listen("tcp", s.Addr)
+		nett := "tcp"
+		if a.forceIpv4 {
+			nett = "tcp4"
+		}
+
+		l, err := a.net.Listen(nett, s.Addr)
 		if err != nil {
 			return err
 		}
@@ -199,6 +205,12 @@ func Serve(servers ...*http.Server) error {
 func PreStartProcess(hook func() error) option {
 	return func(a *app) {
 		a.preStartProcess = hook
+	}
+}
+
+func ForceIpv4() option {
+	return func(a *app) {
+		a.forceIpv4 = true
 	}
 }
 
